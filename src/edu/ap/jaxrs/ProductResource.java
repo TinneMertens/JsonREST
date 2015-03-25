@@ -33,11 +33,12 @@ public class ProductResource {
 				JsonArray data = jsonObject.getJsonArray("data");
 				
 				for(int i = 0; i < data.size(); i++) {
-					jsonString += "{\"shortname\" : \"" + data.get(2) + "\",";
-					jsonString += "\"id\" : " + data.get(0) + ",";
-					jsonString += "\"brand\" : \"" + data.get(3) + "\",";
-					jsonString += "\"description\" : \"" + data.get(4) + "\",";
-					jsonString += "\"price\" : " + data.get(1) + "},";
+					JsonObject item = data.getJsonObject(i);
+					jsonString += "{\"shortname\" : \"" + item.getString("name") + "\",";
+					jsonString += "\"id\" : " + item.getString("id") + ",";
+					jsonString += "\"brand\" : \"" + item.getString("brand") + "\",";
+					jsonString += "\"description\" : \"" + item.getString("description") + "\",";
+					jsonString += "\"price\" : " + item.getInt("price") + "},";
 				}
 				jsonString = jsonString.substring(0, jsonString.length()-1);
 				jsonString += "]}";
@@ -61,21 +62,22 @@ public class ProductResource {
 			//All data
 			InputStream fis = new FileInputStream(Jsonfile);
 			JsonReader jsonReader = Json.createReader(fis);
-			JsonObject jsonObject = jsonReader.readObject();
+			JsonObject jsonObject1 = jsonReader.readObject();
 			jsonReader.close();
 			fis.close();
-			JsonArray data = jsonObject.getJsonArray("data");
+			JsonArray data = jsonObject1.getJsonArray("data");
 			
 			for(int i = 0; i < data.size(); i++) {
-				if(shortname.equals(data.get(1)))
-				jsonString += "{\"shortname\" : \"" + data.get(2) + "\",";
-				jsonString += "\"id\" : " + data.get(0) + ",";
-				jsonString += "\"brand\" : \"" + data.get(3) + "\",";
-				jsonString += "\"description\" : \"" + data.get(4) + "\",";
-				jsonString += "\"price\" : " + data.get(1) + "},";
+				JsonObject item = data.getJsonObject(i);
+				if(shortname.equalsIgnoreCase(item.getString("name")))
+				{
+					jsonString += "{\"shortname\" : \"" + item.getString("name") + "\",";
+					jsonString += "\"id\" : " + item.getString("id") + ",";
+					jsonString += "\"brand\" : \"" + item.getString("brand") + "\",";
+					jsonString += "\"description\" : \"" + item.getString("description") + "\",";
+					jsonString += "\"price\" : " + item.getInt("price") + "}";
+				}
 			}
-			jsonString = jsonString.substring(0, jsonString.length()-1);
-			jsonString += "]}";
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -85,41 +87,10 @@ public class ProductResource {
 		
 	}
 	
-	@GET
-	@Path("/{shortname}")
-	@Produces({"text/xml"})
-	public String getProductXML(@PathParam("shortname") String shortname) {
-		String xmlString = "";
-		try {
-			// get all products
-			JAXBContext jaxbContext1 = JAXBContext.newInstance(ProductsJson.class);
-			Unmarshaller jaxbUnmarshaller = jaxbContext1.createUnmarshaller();
-			File XMLfile = new File("/Users/Tinne/Desktop/Product.txt");
-			ProductsJson productsXML = (ProductsJson)jaxbUnmarshaller.unmarshal(XMLfile);
-			ArrayList<Product> listOfProducts = productsXML.getProducts();
-			
-			// look for the product, using the shortname
-			for(Product product : listOfProducts) {
-				if(shortname.equalsIgnoreCase(product.getName())) {
-					JAXBContext jaxbContext2 = JAXBContext.newInstance(Product.class);
-					Marshaller jaxbMarshaller = jaxbContext2.createMarshaller();
-					StringWriter sw = new StringWriter();
-					jaxbMarshaller.setProperty(Marshaller.JAXB_ENCODING, "UTF-8");
-					jaxbMarshaller.marshal(product, sw);
-					xmlString = sw.toString();
-				}
-			}
-		} 
-		catch (JAXBException e) {
-		   e.printStackTrace();
-		}
-		return xmlString;
-	}
-	
 	@POST
 	@Consumes({"text/xml"})
 	//In poster, doe je een POST, content to sent plak je het voorbeeld XML, content type niet vergeten (text/xml)
-	public void processFromXML(String productXML) {
+	public void processFromXML(String productJson) throws IOException {
 		
 		/* newProductXML should look like this :
 		 *  
@@ -136,27 +107,37 @@ public class ProductResource {
 		
 		try {
 			// get all products
-			JAXBContext jaxbContext1 = JAXBContext.newInstance(ProductsJson.class);
-			Unmarshaller jaxbUnmarshaller1 = jaxbContext1.createUnmarshaller();
-			File XMLfile = new File("/Users/Tinne/Desktop/Product.txt");
-			ProductsJson productsXML = (ProductsJson)jaxbUnmarshaller1.unmarshal(XMLfile);
-			ArrayList<Product> listOfProducts = productsXML.getProducts();
+			String jsonString = "";
 			
-			// unmarshal new product
-			JAXBContext jaxbContext2 = JAXBContext.newInstance(Product.class);
-			Unmarshaller jaxbUnmarshaller2 = jaxbContext2.createUnmarshaller();
-			StringReader reader = new StringReader(productXML);
-			Product newProduct = (Product)jaxbUnmarshaller2.unmarshal(reader);
+			File Jsonfile = new File("/Users/Tinne/Desktop/Product.txt");
 			
-			// add product to existing product list 
-			// and update list of products in  productsXML
-			listOfProducts.add(newProduct);
-			productsXML.setProducts(listOfProducts);
+			try {
+				//All data
+				InputStream fis = new FileInputStream(Jsonfile);
+				JsonReader jsonReader = Json.createReader(fis);
+				JsonObject jsonObject = jsonReader.readObject();
+				jsonReader.close();
+				fis.close();
+				JsonArray data = jsonObject.getJsonArray("data");
+				
+				// unmarshal new product
+				JAXBContext jaxbContext2 = JAXBContext.newInstance(Product.class);
+				Unmarshaller jaxbUnmarshaller2 = jaxbContext2.createUnmarshaller();
+				StringReader reader = new StringReader(productJson);
+				Product newProduct = (Product)jaxbUnmarshaller2.unmarshal(reader);
+				
+				// add product to existing product list 
+				// and update list of products in  productsXML
+				int size = data.size();
+				
+				
+				
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			
-			// marshal the updated productsXML object
-			Marshaller jaxbMarshaller = jaxbContext1.createMarshaller();
-			jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-			jaxbMarshaller.marshal(productsXML, XMLfile);
+			
 		} 
 		catch (JAXBException e) {
 		   e.printStackTrace();

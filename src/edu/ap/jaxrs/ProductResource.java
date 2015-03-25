@@ -4,113 +4,85 @@ import java.io.*;
 import java.util.*;
 
 import javax.enterprise.context.RequestScoped;
+import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonObject;
+import javax.json.JsonReader;
 import javax.ws.rs.*;
 import javax.xml.bind.*;
+import javax.xml.transform.stream.StreamSource;
 
 @RequestScoped
 @Path("/products")
 public class ProductResource {
 	
 	@GET
-	@Produces({"text/html"})
-	public String getProductsHTML() {
-		String htmlString = "<html><body>";
-		try {
-			JAXBContext jaxbContext1 = JAXBContext.newInstance(ProductsJson.class);
-			Unmarshaller jaxbUnmarshaller = jaxbContext1.createUnmarshaller();
-			File Jsonfile = new File("/Users/Tinne/Desktop/Product.json");
-			ProductsJson productsJson = (ProductsJson)jaxbUnmarshaller.unmarshal(Jsonfile);
-			ArrayList<Product> listOfProducts = productsJson.getProducts();
-			
-			for(Product product : listOfProducts) {
-				htmlString += "<b>Name : " + product.getName() + "</b><br>";
-				htmlString += "Id : " + product.getId() + "<br>";
-				htmlString += "Brand : " + product.getBrand() + "<br>";
-				htmlString += "Description : " + product.getDescription() + "<br>";
-				htmlString += "Price : " + product.getPrice() + "<br>";
-				htmlString += "<br><br>";
-			}
-		} 
-		catch (JAXBException e) {
-		   e.printStackTrace();
-		}
-		return htmlString;
-	}
-	
-	@GET
 	@Produces({"application/json"})
 	//in de poster doe je een header toevoegen accept	application/json
-	public String getProductsJSON() {
+	public String getProductsJSON() throws IOException {
 		String jsonString = "{\"products\" : [";
-		try {
-			JAXBContext jaxbContext1 = JAXBContext.newInstance(ProductsJson.class);
-			Unmarshaller jaxbUnmarshaller = jaxbContext1.createUnmarshaller();
-			File XMLfile = new File("/Users/Tinne/SkyDrive/School/2de jaar/Webtechnology 3/Products.xml");
-			ProductsJson productsXML = (ProductsJson)jaxbUnmarshaller.unmarshal(XMLfile);
-			ArrayList<Product> listOfProducts = productsXML.getProducts();
+		
+			File Jsonfile = new File("/Users/Tinne/Desktop/Product.txt");
 			
-			for(Product product : listOfProducts) {
-				jsonString += "{\"shortname\" : \"" + product.getShortname() + "\",";
-				jsonString += "\"id\" : " + product.getId() + ",";
-				jsonString += "\"sku\" : \"" + product.getSku() + "\",";
-				jsonString += "\"brand\" : \"" + product.getBrand() + "\",";
-				jsonString += "\"description\" : \"" + product.getDescription() + "\",";
-				jsonString += "\"price\" : " + product.getPrice() + "},";
+			try {
+				InputStream fis = new FileInputStream(Jsonfile);
+				JsonReader jsonReader = Json.createReader(fis);
+				JsonObject jsonObject = jsonReader.readObject();
+				jsonReader.close();
+				fis.close();
+				JsonArray data = jsonObject.getJsonArray("data");
+				
+				for(int i = 0; i < data.size(); i++) {
+					jsonString += "{\"shortname\" : \"" + data.get(2) + "\",";
+					jsonString += "\"id\" : " + data.get(0) + ",";
+					jsonString += "\"brand\" : \"" + data.get(3) + "\",";
+					jsonString += "\"description\" : \"" + data.get(4) + "\",";
+					jsonString += "\"price\" : " + data.get(1) + "},";
+				}
+				jsonString = jsonString.substring(0, jsonString.length()-1);
+				jsonString += "]}";
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
-			jsonString = jsonString.substring(0, jsonString.length()-1);
-			jsonString += "]}";
+			
+			return jsonString;
 		} 
-		catch (JAXBException e) {
-		   e.printStackTrace();
-		}
-		return jsonString;
-	}
-	
-	@GET
-	@Produces({"text/xml"})
-	//In de poster kan doe je dit opvragen mbv een header name: accept value: text/xml
-	public String getProductsXML() {
-		String content = "";
-		File XMLfile = new File("/Users/Tinne/SkyDrive/School/2de jaar/Webtechnology 3/Products.xml");
-		try {
-		content = new Scanner(XMLfile).useDelimiter("\\Z").next(); 
-//		\\Z = einde van de lijn
-		} 
-		catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
-		return content;
-	}
-
+		
 	@GET
 	@Path("/{shortname}")
 	@Produces({"application/json"})
-	public String getProductJSON(@PathParam("shortname") String shortname) {
+	public String getProductJSON(@PathParam("shortname") String shortname) throws IOException {
 		String jsonString = "";
+		
+		File Jsonfile = new File("/Users/Tinne/Desktop/Product.txt");
+		
 		try {
-			// get all products
-			JAXBContext jaxbContext1 = JAXBContext.newInstance(ProductsJson.class);
-			Unmarshaller jaxbUnmarshaller = jaxbContext1.createUnmarshaller();
-			File XMLfile = new File("/Users/Tinne/SkyDrive/School/2de jaar/Webtechnology 3/Products.xml");
-			ProductsJson productsXML = (ProductsJson)jaxbUnmarshaller.unmarshal(XMLfile);
-			ArrayList<Product> listOfProducts = productsXML.getProducts();
+			//All data
+			InputStream fis = new FileInputStream(Jsonfile);
+			JsonReader jsonReader = Json.createReader(fis);
+			JsonObject jsonObject = jsonReader.readObject();
+			jsonReader.close();
+			fis.close();
+			JsonArray data = jsonObject.getJsonArray("data");
 			
-			// look for the product, using the shortname
-			for(Product product : listOfProducts) {
-				if(shortname.equalsIgnoreCase(product.getShortname())) {
-					jsonString += "{\"shortname\" : \"" + product.getShortname() + "\",";
-					jsonString += "\"id\" : " + product.getId() + ",";
-					jsonString += "\"sku\" : \"" + product.getSku() + "\",";
-					jsonString += "\"brand\" : \"" + product.getBrand() + "\",";
-					jsonString += "\"description\" : \"" + product.getDescription() + "\",";
-					jsonString += "\"price\" : " + product.getPrice() + "}";
-				}
+			for(int i = 0; i < data.size(); i++) {
+				if(shortname.equals(data.get(1)))
+				jsonString += "{\"shortname\" : \"" + data.get(2) + "\",";
+				jsonString += "\"id\" : " + data.get(0) + ",";
+				jsonString += "\"brand\" : \"" + data.get(3) + "\",";
+				jsonString += "\"description\" : \"" + data.get(4) + "\",";
+				jsonString += "\"price\" : " + data.get(1) + "},";
 			}
-		} 
-		catch (JAXBException e) {
-		   e.printStackTrace();
+			jsonString = jsonString.substring(0, jsonString.length()-1);
+			jsonString += "]}";
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+		
 		return jsonString;
+		
 	}
 	
 	@GET
@@ -122,13 +94,13 @@ public class ProductResource {
 			// get all products
 			JAXBContext jaxbContext1 = JAXBContext.newInstance(ProductsJson.class);
 			Unmarshaller jaxbUnmarshaller = jaxbContext1.createUnmarshaller();
-			File XMLfile = new File("/Users/Tinne/SkyDrive/School/2de jaar/Webtechnology 3/Products.xml");
+			File XMLfile = new File("/Users/Tinne/Desktop/Product.txt");
 			ProductsJson productsXML = (ProductsJson)jaxbUnmarshaller.unmarshal(XMLfile);
 			ArrayList<Product> listOfProducts = productsXML.getProducts();
 			
 			// look for the product, using the shortname
 			for(Product product : listOfProducts) {
-				if(shortname.equalsIgnoreCase(product.getShortname())) {
+				if(shortname.equalsIgnoreCase(product.getName())) {
 					JAXBContext jaxbContext2 = JAXBContext.newInstance(Product.class);
 					Marshaller jaxbMarshaller = jaxbContext2.createMarshaller();
 					StringWriter sw = new StringWriter();
@@ -166,7 +138,7 @@ public class ProductResource {
 			// get all products
 			JAXBContext jaxbContext1 = JAXBContext.newInstance(ProductsJson.class);
 			Unmarshaller jaxbUnmarshaller1 = jaxbContext1.createUnmarshaller();
-			File XMLfile = new File("/Users/Tinne/SkyDrive/School/2de jaar/Webtechnology 3/Products.xml");
+			File XMLfile = new File("/Users/Tinne/Desktop/Product.txt");
 			ProductsJson productsXML = (ProductsJson)jaxbUnmarshaller1.unmarshal(XMLfile);
 			ArrayList<Product> listOfProducts = productsXML.getProducts();
 			
